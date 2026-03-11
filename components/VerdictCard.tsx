@@ -6,7 +6,7 @@ import { RefreshCw, Copy, Check } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { type SlipResult, type VerdictType } from "@/lib/pph21-ter"
-import { REGULATION_SOURCES } from "@/lib/regulations"
+import { REGULATION_META, REGULATION_SOURCES } from "@/lib/regulations"
 
 const VERDICT_CONFIG: Record<
   VerdictType,
@@ -390,6 +390,9 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
             </a>
           ))}
         </div>
+        <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          Data regulasi versi {REGULATION_META.version}. Terakhir diperbarui {REGULATION_META.last_updated}.
+        </p>
       </details>
 
       <p className="text-center text-xs text-text-muted dark:text-slate-400">

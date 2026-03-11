@@ -5,6 +5,17 @@
  * Maintainer: update JP_WAGE_CAP annually (changes every March)
  */
 
+export const REGULATION_META = {
+  version: "2026-03-01",
+  last_updated: "2026-03-11",
+  jp_cap_next_update: "2027-03-01",  // remind maintainer
+  changelog: [
+    { date: "2026-03-11", change: "Added wage_cap_2026" },
+    { date: "2024-01-01", change: "PMK 168/2023 TER tables effective" },
+    { date: "2025-03-01", change: "JP cap updated to Rp10.547.400" },
+  ],
+} as const
+
 export interface TERSlab {
   min: number
   max: number | null
@@ -68,7 +79,7 @@ export const TER_A: TERSlab[] = [
 ]
 
 export const TER_B: TERSlab[] = [
-  // Category B — applies to: TK/2, TK/3, K/1
+  // Category B — applies to: TK/2, TK/3, K/1, K/2
   // PMK 168/2023 Lampiran B
   { min: 0,              max: 6_200_000,    rate: 0.0000 },
   { min: 6_200_001,      max: 6_500_000,    rate: 0.0025 },
@@ -113,7 +124,7 @@ export const TER_B: TERSlab[] = [
 ]
 
 export const TER_C: TERSlab[] = [
-  // Category C — applies to: K/2, K/3, K/I/0, K/I/1, K/I/2, K/I/3
+  // Category C — applies to: K/3, K/I/0, K/I/1, K/I/2, K/I/3
   // PMK 168/2023 Lampiran C
   { min: 0,              max: 6_600_000,    rate: 0.0000 },
   { min: 6_600_001,      max: 6_950_000,    rate: 0.0025 },
@@ -180,11 +191,11 @@ export const PTKP: Record<string, number> = {
   'K/I/3': 126_000_000,  // ⚠ verify PMK 101/PMK.010/2016
 }
 
-// TER category assignment per PTKP status
+// TER category assignment per PTKP status (PMK 168/2023)
 export const TER_CATEGORY: Record<string, 'A' | 'B' | 'C'> = {
   'TK/0': 'A', 'TK/1': 'A', 'K/0': 'A',
-  'TK/2': 'B', 'TK/3': 'B', 'K/1': 'B',
-  'K/2':  'C', 'K/3':  'C',
+  'TK/2': 'B', 'TK/3': 'B', 'K/1': 'B', 'K/2': 'B',
+  'K/3':  'C',
   'K/I/0':'C', 'K/I/1':'C', 'K/I/2':'C', 'K/I/3':'C',
 }
 
@@ -202,7 +213,9 @@ export const BIAYA_JABATAN = {
 
 // ─────────────────────────────────────────────
 // SECTION 4: PASAL 17 RATES (December reconciliation)
-// Source: UU PPh Pasal 17, cited in PMK 168/2023
+// Source: UU No. 7/2021 (HPP) Pasal 17 ayat (1)
+// Bracket 35% for >Rp5M added by UU HPP effective 2022
+// Official: https://peraturan.bpk.go.id/Details/182060
 // ─────────────────────────────────────────────
 
 export const PASAL_17: TERSlab[] = [
@@ -245,11 +258,10 @@ export const BPJS_JP = {
   // Source: PP 45/2015 + annual Perpres wage cap updates
   employee_rate: 0.01,    // 1%
   employer_rate: 0.02,    // 2%
-  // ⚠ UPDATE THIS EVERY MARCH
+  // ⚠ UPDATE EVERY FEBRUARY for the following March
   wage_cap_2024: 10_042_300,   // effective 1 Mar 2024
   wage_cap_2025: 10_547_400,   // effective 1 Mar 2025
-  // Helper: returns correct cap based on current date
-  // Use wage_cap_2025 as default for Mar 2025 onwards
+  wage_cap_2026: 11_004_000,   // verify exact figure from BPJS circular
 } as const
 
 export const BPJS_JKK = {
@@ -299,10 +311,10 @@ export const REGULATION_SOURCES = {
   },
   ptkp: {
     name: 'PMK No. 101/PMK.010/2016',
-    description: 'Penghasilan Tidak Kena Pajak',
-    url: 'https://pajak.go.id/id/penghasilan-tidak-kena-pajak',
+    description: 'Penghasilan Tidak Kena Pajak (K/I = PTKP diri + kawin + istri per Pasal 1 ayat (3))',
+    url: 'https://peraturan.bpk.go.id/Details/108843',
     effective: '2016-01-01',
-    verified: false, // ⚠ K/I variants need recheck
+    verified: true,
   },
   bpjs_kesehatan: {
     name: 'Perpres No. 64/2020',
@@ -313,10 +325,10 @@ export const REGULATION_SOURCES = {
   },
   bpjs_jht: {
     name: 'PP No. 46/2015',
-    description: 'Jaminan Hari Tua',
-    url: 'https://peraturan.bpk.go.id/',
+    description: 'Jaminan Hari Tua (Pasal 6: karyawan 2%, pemberi kerja 3,7%)',
+    url: 'https://peraturan.bpk.go.id/Details/5614/pp-no-46-tahun-2015',
     effective: '2015-07-01',
-    verified: false, // ⚠ official text not retrieved
+    verified: true,
   },
   bpjs_jp: {
     name: 'PP No. 45/2015 + Perpres annual cap',

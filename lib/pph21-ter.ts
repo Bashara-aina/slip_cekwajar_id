@@ -57,10 +57,13 @@ function progressiveTax(pkp: number, brackets: TERSlab[]): number {
   return Math.round(tax)
 }
 
-function getJpCap(year?: number): number {
-  const y = year ?? new Date().getFullYear()
-  if (y <= 2024) return BPJS_JP.wage_cap_2024
-  return BPJS_JP.wage_cap_2025
+/** JP cap changes effective 1 March each year. Jan–Feb of year X use year X-1 cap. */
+export function getJpCap(year: number, month: number): number {
+  const effectiveYear = month < 3 ? year - 1 : year
+  if (effectiveYear <= 2023) return BPJS_JP.wage_cap_2024
+  if (effectiveYear === 2024) return BPJS_JP.wage_cap_2024
+  if (effectiveYear === 2025) return BPJS_JP.wage_cap_2025
+  return BPJS_JP.wage_cap_2026
 }
 
 export interface SlipInput {
@@ -102,8 +105,10 @@ type CalculationItem = {
   explanation_id: string
 }
 
+type Pph21ResultItem = Omit<CalculationItem, "expected"> & { expected: number | null }
+
 export interface CalculateAllResult {
-  pph21: CalculationItem
+  pph21: Pph21ResultItem
   bpjsKesehatan: CalculationItem
   bpjsJHT: CalculationItem
   bpjsJP: CalculationItem
@@ -209,17 +214,17 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
   const isDecember = input.month === 12
   const taxYear = input.tax_year ?? new Date().getFullYear()
 
-  const pph21Expected = isDecember
+  const pph21Expected: number | null = isDecember
     ? input.annual_gross !== undefined
       ? calculateAnnualPph21Expected(input).expected
-      : 0
+      : null  // data tidak cukup untuk dihitung
     : Math.round(gross * terRate)
 
   const bpjsKesehatanExpected = Math.round(
     Math.min(gross, BPJS_KESEHATAN.wage_cap) * BPJS_KESEHATAN.employee_rate
   )
   const bpjsJHTExpected = Math.round(gross * BPJS_JHT.employee_rate)
-  const jpCap = getJpCap(taxYear)
+  const jpCap = getJpCap(taxYear, input.month)
   const bpjsJPExpected = Math.round(Math.min(gross, jpCap) * BPJS_JP.employee_rate)
 
   const pph21Actual = input.pph21_charged || 0
@@ -229,19 +234,22 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
   const jkkActual = input.bpjs_jkk_charged || 0
   const jkmActual = input.bpjs_jkm_charged || 0
 
-  const pph21Diff = pph21Actual - pph21Expected
+  const pph21Diff = pph21Actual - (pph21Expected ?? 0)
   const kesehatanDiff = bpjsKesehatanActual - bpjsKesehatanExpected
   const jhtDiff = bpjsJHTActual - bpjsJHTExpected
   const jpDiff = bpjsJPActual - bpjsJPExpected
 
-  const pph21Verdict = isDecember && input.annual_gross === undefined
-    ? "PERLU_DICEK"
-    : classifyDiff(pph21Diff)
+  const flags: string[] = []
+  let pph21Verdict: VerdictType
+  if (pph21Expected === null) {
+    pph21Verdict = "PERLU_DICEK"
+    flags.push("Bulan Desember: isi total penghasilan tahunan untuk hasil akurat")
+  } else {
+    pph21Verdict = classifyDiff(pph21Diff)
+  }
   const kesehatanVerdict = classifyDiff(kesehatanDiff)
   const jhtVerdict = classifyDiff(jhtDiff)
   const jpVerdict = classifyDiff(jpDiff)
-
-  const flags: string[] = []
 
   const jkkVerdict: VerdictType = jkkActual > 0 ? "TIDAK_WAJAR" : "WAJAR"
   if (jkkActual > 0) flags.push("JKK dipotong dari karyawan (harus beban pemberi kerja)")
@@ -273,10 +281,6 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
       flags.push("Biaya jabatan tidak diterapkan sebelum hitung PPh 21 rekonsiliasi")
     }
   }
-  if (isDecember && input.annual_gross === undefined) {
-    flags.push("Data rekonsiliasi tahunan belum lengkap (annual_gross tidak diisi)")
-  }
-
   let overallVerdict = pph21Verdict
   overallVerdict = worstVerdict(overallVerdict, kesehatanCapVerdict)
   overallVerdict = worstVerdict(overallVerdict, jhtVerdict)
@@ -286,7 +290,7 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
   overallVerdict = worstVerdict(overallVerdict, biayaJabatanVerdict)
 
   const totalOvercharge =
-    Math.max(0, pph21Diff) +
+    (pph21Expected !== null ? Math.max(0, pph21Diff) : 0) +
     Math.max(0, kesehatanDiff) +
     Math.max(0, jhtDiff) +
     Math.max(0, jpDiff) +
@@ -295,7 +299,7 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
 
   return {
     pph21: {
-      expected: pph21Expected,
+      expected: pph21Expected,  // null when December and annual_gross not provided
       actual: pph21Actual,
       diff: pph21Diff,
       verdict: pph21Verdict,
@@ -371,7 +375,11 @@ function buildExplanation(result: CalculateAllResult): string {
 export function calculateSlip(input: SlipInput): SlipResult {
   const all = calculateAll(input)
 
-  const totalExpected = all.pph21.expected + all.bpjsKesehatan.expected + all.bpjsJHT.expected + all.bpjsJP.expected
+  const totalExpected =
+    (all.pph21.expected ?? 0) +
+    all.bpjsKesehatan.expected +
+    all.bpjsJHT.expected +
+    all.bpjsJP.expected
   const totalCharged =
     all.pph21.actual +
     all.bpjsKesehatan.actual +
@@ -396,11 +404,13 @@ export function calculateSlip(input: SlipInput): SlipResult {
     pph21: {
       label: "PPh 21",
       charged: all.pph21.actual,
-      expected: all.pph21.expected,
+      expected: all.pph21.expected ?? 0,
       diff: all.pph21.diff,
       isCorrect: all.pph21.verdict === "WAJAR",
       note: all.isDecember
-        ? "Masa terakhir: rekonsiliasi tahunan Pasal 17"
+        ? all.pph21.expected === null
+          ? "Desember: isi total penghasilan tahunan untuk perhitungan"
+          : "Masa terakhir: rekonsiliasi tahunan Pasal 17"
         : `TER ${all.terCategory} x ${(all.terRate * 100).toFixed(2)}%`,
     },
     bpjsKesehatan: {
