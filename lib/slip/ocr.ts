@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { OcrExtractedData } from "@/types/slip";
 
+/** OCR uses OpenRouter (OpenAI-compatible client), not Anthropic SDK. */
 const client = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY

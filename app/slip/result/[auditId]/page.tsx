@@ -3,6 +3,7 @@ import { FullReport } from "@/components/slip/FullReport";
 import { PaywallModal } from "@/components/slip/PaywallModal";
 import { ShareCard } from "@/components/slip/ShareCard";
 import { VerdictCard } from "@/components/slip/VerdictCard";
+import { generatePremiumTexts } from "@/lib/slip/surat-keberatan";
 import type { AuditResult, PremiumContent } from "@/types/slip";
 
 type PageProps = {
@@ -46,43 +47,52 @@ function toAuditResult(row: AuditRow): AuditResult {
   };
 }
 
-function toPremiumContent(row: AuditRow): PremiumContent {
-  return {
-    full_breakdown: [
-      {
-        komponen: "PPh21",
-        dipotong: row.pph21_charged,
-        seharusnya: row.pph21_expected,
-        selisih: Math.max(0, row.pph21_charged - row.pph21_expected),
-        dasar_hukum: "PMK 168/2023"
-      },
-      {
-        komponen: "BPJS Kesehatan",
-        dipotong: row.bpjs_kesehatan_charged,
-        seharusnya: row.bpjs_kesehatan_expected,
-        selisih: Math.max(0, row.bpjs_kesehatan_charged - row.bpjs_kesehatan_expected),
-        dasar_hukum: "Perpres 64/2020"
-      },
-      {
-        komponen: "BPJS TK (JHT+JP)",
-        dipotong: row.bpjs_tk_charged,
-        seharusnya: row.bpjs_tk_expected,
-        selisih: Math.max(0, row.bpjs_tk_charged - row.bpjs_tk_expected),
-        dasar_hukum: "PP 84/2015"
-      }
-    ],
-    estimation_12_months: {
-      monthly_discrepancy: row.discrepancy_amount,
-      estimated_total: row.discrepancy_amount * 12,
-      formula: "discrepancy bulanan x 12 bulan"
+function buildPremiumBreakdown(row: AuditRow): PremiumContent["full_breakdown"] {
+  return [
+    {
+      komponen: "PPh21",
+      dipotong: row.pph21_charged,
+      seharusnya: row.pph21_expected,
+      selisih: Math.max(0, row.pph21_charged - row.pph21_expected),
+      dasar_hukum: "PMK 168/2023"
     },
-    surat_keberatan:
-      "Yth. HR,\nSaya mengajukan keberatan atas potongan gaji yang tidak sesuai regulasi. Mohon review dan pengembalian selisih potongan.",
-    wa_templates: [
-      "Halo HR, saya cek ada selisih potongan di slip. Boleh dibantu review?",
-      "Mau konfirmasi potongan gaji bulan ini, sepertinya ada perhitungan yang perlu dicek ulang.",
-      "Saya kirim hasil audit slip, mohon follow-up koreksi potongan ya."
-    ],
+    {
+      komponen: "BPJS Kesehatan",
+      dipotong: row.bpjs_kesehatan_charged,
+      seharusnya: row.bpjs_kesehatan_expected,
+      selisih: Math.max(0, row.bpjs_kesehatan_charged - row.bpjs_kesehatan_expected),
+      dasar_hukum: "Perpres 64/2020"
+    },
+    {
+      komponen: "BPJS TK (JHT+JP)",
+      dipotong: row.bpjs_tk_charged,
+      seharusnya: row.bpjs_tk_expected,
+      selisih: Math.max(0, row.bpjs_tk_charged - row.bpjs_tk_expected),
+      dasar_hukum: "PP 84/2015"
+    }
+  ];
+}
+
+async function getPremiumContent(row: AuditRow): Promise<PremiumContent> {
+  const full_breakdown = buildPremiumBreakdown(row);
+  const estimation_12_months = {
+    monthly_discrepancy: row.discrepancy_amount,
+    estimated_total: row.discrepancy_amount * 12,
+    formula: "discrepancy bulanan x 12 bulan"
+  };
+
+  const { surat_keberatan, wa_templates } = await generatePremiumTexts({
+    verdict: row.verdict,
+    discrepancy_rp: row.discrepancy_amount,
+    breakdown: full_breakdown,
+    estimated_12_month: row.discrepancy_amount * 12
+  });
+
+  return {
+    full_breakdown,
+    estimation_12_months,
+    surat_keberatan,
+    wa_templates,
     pdf_url: null
   };
 }
@@ -119,6 +129,8 @@ export default async function ResultPage({ params }: PageProps) {
   const visibleIssues = result.issues.slice(0, 1);
   const hiddenIssuesCount = Math.max(0, result.issues.length - 1);
 
+  const premiumContent = audit.premium_unlocked ? await getPremiumContent(audit) : null;
+
   return (
     <main className="mx-auto flex min-h-screen w-full min-w-[375px] max-w-4xl flex-col gap-4 px-4 py-6">
       <VerdictCard result={result} />
@@ -148,8 +160,8 @@ export default async function ResultPage({ params }: PageProps) {
         </div>
       </section>
 
-      {audit.premium_unlocked ? (
-        <FullReport content={toPremiumContent(audit)} />
+      {audit.premium_unlocked && premiumContent ? (
+        <FullReport content={premiumContent} />
       ) : (
         <PaywallModal auditId={audit.id} />
       )}

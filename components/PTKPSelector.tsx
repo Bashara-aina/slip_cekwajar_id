@@ -34,7 +34,7 @@ const GROUPS: Group[] = [
     options: [
       { value: "K/0", label: "K/0", desc: "0 tanggungan", category: "A" },
       { value: "K/1", label: "K/1", desc: "1 tanggungan", category: "B" },
-      { value: "K/2", label: "K/2", desc: "2 tanggungan", category: "B" },
+      { value: "K/2", label: "K/2", desc: "2 tanggungan", category: "C" },
       { value: "K/3", label: "K/3", desc: "3 tanggungan", category: "C" },
     ],
   },
@@ -42,9 +42,9 @@ const GROUPS: Group[] = [
     title: "Menikah — Gabung Penghasilan",
     emoji: "👫💼",
     options: [
-      { value: "K/I/0", label: "K/I/0", desc: "0 tanggungan", category: "A" },
-      { value: "K/I/1", label: "K/I/1", desc: "1 tanggungan", category: "B" },
-      { value: "K/I/2", label: "K/I/2", desc: "2 tanggungan", category: "B" },
+      { value: "K/I/0", label: "K/I/0", desc: "0 tanggungan", category: "C" },
+      { value: "K/I/1", label: "K/I/1", desc: "1 tanggungan", category: "C" },
+      { value: "K/I/2", label: "K/I/2", desc: "2 tanggungan", category: "C" },
       { value: "K/I/3", label: "K/I/3", desc: "3 tanggungan", category: "C" },
     ],
   },

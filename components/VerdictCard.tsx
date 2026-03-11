@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { RefreshCw, Copy, Check } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import type { SlipResult, VerdictType } from "@/lib/pph21-ter"
+import { REGULATION_SOURCES, type SlipResult, type VerdictType } from "@/lib/pph21-ter"
 
 const VERDICT_CONFIG: Record<
   VerdictType,
@@ -359,6 +359,26 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
       </motion.div>
 
       {/* Footer trust line */}
+      <details className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-slate-700 dark:text-slate-200">
+          📋 Sumber Regulasi
+        </summary>
+        <div className="mt-3 grid gap-2 text-xs">
+          {Object.values(REGULATION_SOURCES).map((source) => (
+            <a
+              key={source.name}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-slate-100 px-3 py-2 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-slate-100"
+            >
+              <span className="block font-medium">{source.name}</span>
+              <span className="block text-[11px] opacity-80">Berlaku: {source.effective}</span>
+            </a>
+          ))}
+        </div>
+      </details>
+
       <p className="text-center text-xs text-text-muted dark:text-slate-400">
         Data tidak disimpan. Perhitungan berdasarkan{" "}
         <a
