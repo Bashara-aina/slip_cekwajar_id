@@ -5,7 +5,8 @@ import { motion } from "framer-motion"
 import { RefreshCw, Copy, Check } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { REGULATION_SOURCES, type SlipResult, type VerdictType } from "@/lib/pph21-ter"
+import { type SlipResult, type VerdictType } from "@/lib/pph21-ter"
+import { REGULATION_SOURCES } from "@/lib/regulations"
 
 const VERDICT_CONFIG: Record<
   VerdictType,
@@ -358,10 +359,10 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
         </button>
       </motion.div>
 
-      {/* Footer trust line */}
+      {/* Dasar Hukum — collapsible regulation sources */}
       <details className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
         <summary className="cursor-pointer list-none text-sm font-semibold text-slate-700 dark:text-slate-200">
-          📋 Sumber Regulasi
+          📋 Dasar Hukum
         </summary>
         <div className="mt-3 grid gap-2 text-xs">
           {Object.values(REGULATION_SOURCES).map((source) => (
@@ -370,10 +371,22 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg border border-slate-100 px-3 py-2 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-slate-100"
+              className="flex flex-col gap-0.5 rounded-lg border border-slate-100 px-3 py-2.5 text-left text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-slate-100"
             >
-              <span className="block font-medium">{source.name}</span>
-              <span className="block text-[11px] opacity-80">Berlaku: {source.effective}</span>
+              <span className="flex items-center gap-2 font-medium">
+                {source.name}
+                {source.verified ? (
+                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                    ✅
+                  </span>
+                ) : (
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                    ⚠️ Sedang diverifikasi
+                  </span>
+                )}
+              </span>
+              <span className="text-[11px] leading-tight opacity-90">{source.description}</span>
+              <span className="text-[11px] opacity-70">Berlaku: {source.effective}</span>
             </a>
           ))}
         </div>
