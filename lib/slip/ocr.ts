@@ -123,8 +123,8 @@ export async function extractSlipData(
 
   try {
     const completion = await client.chat.completions.create({
-      model: "anthropic/claude-3.5-sonnet",
-      max_tokens: 1200,
+      model: "anthropic/claude-3-5-sonnet-20241022",
+      max_tokens: 2000,
       messages: [
         {
           role: "system",

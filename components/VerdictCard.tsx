@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useCallback } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { RefreshCw, Copy, Check } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -83,10 +83,10 @@ interface VerdictCardProps {
 export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
   const cfg = VERDICT_CONFIG[result.verdict]
   const [copied, setCopied] = useState(false)
+  const [screenshotFailed, setScreenshotFailed] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
-  const tableRows = [
-    result.pph21,
+  const bpjsRows = [
     result.bpjsKesehatan,
     result.bpjsJht,
     result.bpjsJp,
@@ -129,7 +129,8 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
       link.href = canvas.toDataURL()
       link.click()
     } catch {
-      // html2canvas not available — fall back to share text
+      setScreenshotFailed(true)
+      setTimeout(() => setScreenshotFailed(false), 3000)
       handleCopyShare()
     }
   }, [resultRef, handleCopyShare])
@@ -211,79 +212,128 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
             ))}
           </div>
 
-          {tableRows.map((row, i) =>
-            row.label === "PPh 21" && result.pph21DataIncomplete ? (
-              <motion.div
-                key="pph21-incomplete"
-                custom={i}
-                initial="hidden"
-                animate="visible"
-                variants={tableRowVariants}
-                className="grid grid-cols-4 items-center gap-1 px-4 py-3 bg-amber-50/40 dark:bg-amber-950/10"
-              >
-                <div>
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                    PPh 21
+          {/* PPh 21 row — hide in December (Pasal 17, not TER) */}
+          {!result.isDecember && !result.pph21DataIncomplete && (
+            <motion.div
+              key="pph21-row"
+              custom={0}
+              initial="hidden"
+              animate="visible"
+              variants={tableRowVariants}
+              className={cn(
+                "grid grid-cols-4 items-center gap-1 px-4 py-3",
+                result.pph21.isIllegal
+                  ? "bg-red-50/60 dark:bg-red-950/20"
+                  : !result.pph21.isCorrect
+                  ? "bg-amber-50/40 dark:bg-amber-950/10"
+                  : ""
+              )}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {result.pph21.label}
+                </p>
+                {result.pph21.note && (
+                  <p className="mt-0.5 text-[10px] leading-tight text-text-muted dark:text-slate-400 line-clamp-2">
+                    {result.pph21.note}
                   </p>
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                    Isi total penghasilan tahunan untuk hasil akurat
+                )}
+              </div>
+              <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                {formatIDR(result.pph21.expected)}
+              </span>
+              <span className={cn("font-mono text-xs font-semibold",
+                !result.pph21.isCorrect ? "text-amber-600 dark:text-amber-400" : "text-slate-700 dark:text-slate-200"
+              )}>
+                {formatIDR(result.pph21.charged)}
+              </span>
+              <RowStatus correct={result.pph21.isCorrect} />
+            </motion.div>
+          )}
+
+          {/* PPh 21 — December without annual_gross: show amber incomplete row */}
+          {result.isDecember && result.pph21DataIncomplete && (
+            <motion.div
+              key="pph21-incomplete"
+              custom={0}
+              initial="hidden"
+              animate="visible"
+              variants={tableRowVariants}
+              className="grid grid-cols-4 items-center gap-1 px-4 py-3 bg-amber-50/40 dark:bg-amber-950/10"
+            >
+              <div>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">PPh 21</p>
+                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                  Isi total penghasilan tahunan untuk hasil akurat
+                </p>
+              </div>
+              <span className="font-mono text-xs text-slate-400">—</span>
+              <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
+                {formatIDR(result.pph21.charged)}
+              </span>
+              <span className="text-sm text-amber-500">⚠️</span>
+            </motion.div>
+          )}
+
+          {/* PPh 21 — December WITH annual_gross: show Pasal 17 note instead of TER row */}
+          {result.isDecember && !result.pph21DataIncomplete && (
+            <div className="col-span-4 px-4 py-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 mx-4 my-1">
+              <p className="text-xs text-purple-700 dark:text-purple-300">
+                🗓️ PPh 21 Desember menggunakan rekonsiliasi Pasal 17 — tidak diperiksa via TER.
+                {result.pph21?.note && <span> {result.pph21.note}</span>}
+              </p>
+            </div>
+          )}
+
+          {/* BPJS rows — always shown, including December */}
+          {bpjsRows.map((row, i) => (
+            <motion.div
+              key={row.label}
+              custom={i + 1}
+              initial="hidden"
+              animate="visible"
+              variants={tableRowVariants}
+              className={cn(
+                "grid grid-cols-4 items-center gap-1 px-4 py-3",
+                row.isIllegal
+                  ? "bg-red-50/60 dark:bg-red-950/20"
+                  : !row.isCorrect
+                  ? "bg-amber-50/40 dark:bg-amber-950/10"
+                  : ""
+              )}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {row.label}
+                </p>
+                {row.note && (
+                  <p className="mt-0.5 text-[10px] leading-tight text-text-muted dark:text-slate-400 line-clamp-2">
+                    {row.note}
                   </p>
-                </div>
-                <span className="font-mono text-xs text-slate-400">—</span>
-                <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
-                  {formatIDR(row.charged)}
-                </span>
-                <span className="text-sm text-amber-500">⚠️</span>
-              </motion.div>
-            ) : (
-              <motion.div
-                key={row.label}
-                custom={i}
-                initial="hidden"
-                animate="visible"
-                variants={tableRowVariants}
+                )}
+              </div>
+              <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                {row.isIllegal ? (
+                  <span className="text-[10px] text-red-500">—</span>
+                ) : (
+                  formatIDR(row.expected)
+                )}
+              </span>
+              <span
                 className={cn(
-                  "grid grid-cols-4 items-center gap-1 px-4 py-3",
+                  "font-mono text-xs font-semibold",
                   row.isIllegal
-                    ? "bg-red-50/60 dark:bg-red-950/20"
+                    ? "text-red-600 dark:text-red-400"
                     : !row.isCorrect
-                    ? "bg-amber-50/40 dark:bg-amber-950/10"
-                    : ""
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-slate-700 dark:text-slate-200"
                 )}
               >
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
-                    {row.label}
-                  </p>
-                  {row.note && (
-                    <p className="mt-0.5 text-[10px] leading-tight text-text-muted dark:text-slate-400 line-clamp-2">
-                      {row.note}
-                    </p>
-                  )}
-                </div>
-                <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
-                  {row.isIllegal ? (
-                    <span className="text-[10px] text-red-500">—</span>
-                  ) : (
-                    formatIDR(row.expected)
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "font-mono text-xs font-semibold",
-                    row.isIllegal
-                      ? "text-red-600 dark:text-red-400"
-                      : !row.isCorrect
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-slate-700 dark:text-slate-200"
-                  )}
-                >
-                  {formatIDR(row.charged)}
-                </span>
-                <RowStatus correct={row.isCorrect} illegal={row.isIllegal} />
-              </motion.div>
-            )
-          )}
+                {formatIDR(row.charged)}
+              </span>
+              <RowStatus correct={row.isCorrect} illegal={row.isIllegal} />
+            </motion.div>
+          ))}
         </div>
       </div>
 
@@ -381,6 +431,19 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
           <RefreshCw className="h-4 w-4" /> Cek Slip Lain
         </button>
       </motion.div>
+
+      <AnimatePresence>
+        {screenshotFailed && (
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-center text-xs text-amber-600 dark:text-amber-400"
+          >
+            Screenshot gagal — teks berhasil disalin ✅
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {/* Dasar Hukum — collapsible regulation sources */}
       <details className="rounded-2xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">

@@ -28,6 +28,11 @@ const schema = z.object({
   bpjs_jkk_charged: z.number().min(0),
   bpjs_jkm_charged: z.number().min(0),
   potongan_lain: z.number().min(0),
+  // December-only fields (optional)
+  annual_gross: z.number().min(0).optional(),
+  annual_iuran_pensiun: z.number().min(0).optional(),
+  annual_zakat: z.number().min(0).optional(),
+  annual_pph21_paid: z.number().min(0).optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -133,7 +138,9 @@ export default function SlipPage() {
     (watchedValues[7] || 0) +
     (watchedValues[8] || 0) +
     (watchedValues[9] || 0)
-  const showOverWarning = step === 2 && totalGross > 0 && totalDeductions > totalGross
+  const watchedMonth = watch("month")
+  const isDecemberMode = watchedMonth === 12
+  const showOverWarning = step === 2 && totalGross > 0 && totalDeductions > totalGross * 0.5
 
   const goToStep2 = async () => {
     const valid = await trigger(["month", "ptkp_status"])
@@ -161,7 +168,13 @@ export default function SlipPage() {
     setFormErrors([])
     setSubmitting(true)
     await new Promise((r) => setTimeout(r, 600))
-    const res = calculateSlip(slipInput)
+    const res = calculateSlip({
+      ...slipInput,
+      annual_gross: data.annual_gross || undefined,
+      annual_iuran_pensiun: data.annual_iuran_pensiun || undefined,
+      annual_zakat: data.annual_zakat || undefined,
+      annual_pph21_paid_before_last_period: data.annual_pph21_paid || undefined,
+    })
     setResult(res)
     setSubmitting(false)
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100)
@@ -338,7 +351,7 @@ export default function SlipPage() {
                                 className="overflow-hidden"
                               >
                                 <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
-                                  ⚠️ Hmm, potongan lebih besar dari gaji. Cek kembali ya.
+                                  ⚠️ Total potongan melebihi 50% gaji — melebihi batas PP 36/2021 Pasal 65. Cek kembali.
                                 </div>
                               </motion.div>
                             )}
@@ -455,6 +468,74 @@ export default function SlipPage() {
                                 />
                               )}
                             />
+
+                            {/* December annual reconciliation fields */}
+                            <AnimatePresence>
+                              {isDecemberMode && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="space-y-3 pt-1">
+                                    <div className="rounded-xl bg-purple-50 px-3 py-2 text-xs text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                                      🗓️ Desember: Masukkan data tahunan untuk rekonsiliasi Pasal 17 (opsional tapi disarankan)
+                                    </div>
+                                    <Controller
+                                      control={control}
+                                      name="annual_gross"
+                                      render={({ field }) => (
+                                        <CurrencyInput
+                                          label="Total Gaji Bruto Setahun"
+                                          optional
+                                          value={field.value ?? 0}
+                                          onChange={field.onChange}
+                                          hint="Jumlah seluruh gaji bruto Jan–Des tahun ini"
+                                        />
+                                      )}
+                                    />
+                                    <Controller
+                                      control={control}
+                                      name="annual_iuran_pensiun"
+                                      render={({ field }) => (
+                                        <CurrencyInput
+                                          label="Iuran Pensiun Setahun"
+                                          optional
+                                          value={field.value ?? 0}
+                                          onChange={field.onChange}
+                                        />
+                                      )}
+                                    />
+                                    <Controller
+                                      control={control}
+                                      name="annual_zakat"
+                                      render={({ field }) => (
+                                        <CurrencyInput
+                                          label="Zakat Penghasilan Setahun"
+                                          optional
+                                          value={field.value ?? 0}
+                                          onChange={field.onChange}
+                                        />
+                                      )}
+                                    />
+                                    <Controller
+                                      control={control}
+                                      name="annual_pph21_paid"
+                                      render={({ field }) => (
+                                        <CurrencyInput
+                                          label="PPh 21 Sudah Dibayar Jan–Nov"
+                                          optional
+                                          value={field.value ?? 0}
+                                          onChange={field.onChange}
+                                          hint="Total PPh 21 yang sudah dipotong bulan sebelumnya"
+                                        />
+                                      )}
+                                    />
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
 
                             {/* Optional fields toggle */}
                             <button

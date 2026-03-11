@@ -259,7 +259,8 @@ export const BPJS_KESEHATAN = {
 // ─────────────────────────────────────────────
 
 export const BPJS_JHT = {
-  // ⚠ Verify PP 46/2015 official text before prod
+  // Source: PP 46/2015 Pasal 6 — confirmed
+  // employee: 2%, employer: 3.7%, no wage cap
   employee_rate: 0.02,    // 2%
   employer_rate: 0.037,   // 3.7%
   wage_cap: null,         // no cap for JHT
@@ -371,7 +372,8 @@ export const REGULATION_SOURCES = {
     description: 'Jaminan Pensiun — cap update tiap Maret',
     url: 'https://peraturan.bpk.go.id/',
     effective: '2015-07-01',
-    verified: true, // cap values verified via BPJS circular
+    verified: true,           // PP 45/2015 regulation is verified
+    cap_2026_verified: false, // wage_cap_2026 = estimate, pending Perpres
   },
   bpjs_jkk_jkm: {
     name: 'PP No. 44/2015',

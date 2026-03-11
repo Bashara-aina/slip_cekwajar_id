@@ -215,6 +215,9 @@ function calculateBiayaJabatan(annualGross: number): number {
 
 function calculateAnnualPph21Expected(input: SlipInput): { expected: number; debugNoBiaya: number } {
   const annualGross = input.annual_gross ?? 0
+  if (annualGross <= 0) {
+    return { expected: 0, debugNoBiaya: 0 }
+  }
   const annualIuranPensiun = input.annual_iuran_pensiun ?? 0
   const annualZakat = input.annual_zakat ?? 0
   const paidJanNov = input.annual_pph21_paid_before_last_period ?? 0

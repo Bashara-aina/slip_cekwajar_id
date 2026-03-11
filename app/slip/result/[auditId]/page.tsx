@@ -83,6 +83,8 @@ async function getPremiumContent(row: AuditRow): Promise<PremiumContent> {
 
   const { surat_keberatan, wa_templates } = await generatePremiumTexts({
     verdict: row.verdict,
+    month: new Date().getMonth() + 1,
+    is_december: new Date().getMonth() === 11,
     discrepancy_rp: row.discrepancy_amount,
     breakdown: full_breakdown,
     estimated_12_month: row.discrepancy_amount * 12

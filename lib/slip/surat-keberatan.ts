@@ -6,6 +6,8 @@ const groq = new Groq({
 
 export type SuratContext = {
   verdict: string;
+  month: number;        // 1–12
+  is_december: boolean; // true = rekonsiliasi Pasal 17
   discrepancy_rp: number;
   breakdown: Array<{
     komponen: string;
@@ -26,6 +28,12 @@ Setiap kalimat: sopan, singkat (max 1 baris), dan mengarah ke permintaan review/
 
 function buildSuratUserPrompt(ctx: SuratContext): string {
   const rp = new Intl.NumberFormat("id-ID").format(ctx.discrepancy_rp);
+  const monthLabel = new Intl.DateTimeFormat("id-ID", { month: "long" }).format(
+    new Date(2024, ctx.month - 1)
+  );
+  const taxNote = ctx.is_december
+    ? "Catatan: ini masa pajak Desember — PPh 21 menggunakan rekonsiliasi tahunan Pasal 17, bukan TER. Surat sebaiknya hanya mempermasalahkan komponen BPJS."
+    : "Ini adalah potongan TER bulanan (PMK 168/2023).";
   const lines = ctx.breakdown
     .filter((b) => b.selisih > 0)
     .map(
@@ -33,7 +41,7 @@ function buildSuratUserPrompt(ctx: SuratContext): string {
         `- ${b.komponen}: dipotong Rp ${new Intl.NumberFormat("id-ID").format(b.dipotong)}, seharusnya Rp ${new Intl.NumberFormat("id-ID").format(b.seharusnya)} (selisih Rp ${new Intl.NumberFormat("id-ID").format(b.selisih)}, ${b.dasar_hukum})`
     )
     .join("\n");
-  return `Verdict: ${ctx.verdict}. Total selisih kelebihan potongan: Rp ${rp}.\n\nRincian:\n${lines || "Tidak ada rincian."}\n\nEstimasi 12 bulan: Rp ${new Intl.NumberFormat("id-ID").format(ctx.estimated_12_month)}.\n\nTulis surat keberatan berdasarkan data di atas.`;
+  return `Slip bulan ${monthLabel}. ${taxNote}\nVerdict: ${ctx.verdict}. Total selisih kelebihan potongan: Rp ${rp}.\n\nRincian:\n${lines || "Tidak ada rincian."}\n\nEstimasi 12 bulan: Rp ${new Intl.NumberFormat("id-ID").format(ctx.estimated_12_month)}.\n\nTulis surat keberatan berdasarkan data di atas.`;
 }
 
 function buildWaUserPrompt(ctx: SuratContext): string {
