@@ -102,23 +102,27 @@ async function fetchAuditById(auditId: string): Promise<AuditRow | null> {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) return null;
 
-  const response = await fetch(
-    `${supabaseUrl}/rest/v1/slip_audits?id=eq.${encodeURIComponent(
-      auditId
-    )}&select=id,verdict,discrepancy_amount,issues,premium_unlocked,pph21_charged,pph21_expected,bpjs_kesehatan_charged,bpjs_kesehatan_expected,bpjs_tk_charged,bpjs_tk_expected&limit=1`,
-    {
-      method: "GET",
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`
-      },
-      cache: "no-store"
-    }
-  );
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/slip_audits?id=eq.${encodeURIComponent(
+        auditId
+      )}&select=id,verdict,discrepancy_amount,issues,premium_unlocked,pph21_charged,pph21_expected,bpjs_kesehatan_charged,bpjs_kesehatan_expected,bpjs_tk_charged,bpjs_tk_expected&limit=1`,
+      {
+        method: "GET",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`
+        },
+        cache: "no-store"
+      }
+    );
 
-  if (!response.ok) return null;
-  const rows = (await response.json()) as AuditRow[];
-  return rows[0] ?? null;
+    if (!response.ok) return null;
+    const rows = (await response.json()) as AuditRow[];
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function ResultPage({ params }: PageProps) {
@@ -129,7 +133,14 @@ export default async function ResultPage({ params }: PageProps) {
   const visibleIssues = result.issues.slice(0, 1);
   const hiddenIssuesCount = Math.max(0, result.issues.length - 1);
 
-  const premiumContent = audit.premium_unlocked ? await getPremiumContent(audit) : null;
+  let premiumContent: PremiumContent | null = null;
+  if (audit.premium_unlocked) {
+    try {
+      premiumContent = await getPremiumContent(audit);
+    } catch {
+      premiumContent = null;
+    }
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full min-w-[375px] max-w-4xl flex-col gap-4 px-4 py-6">

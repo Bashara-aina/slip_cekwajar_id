@@ -6,7 +6,7 @@ import { RefreshCw, Copy, Check } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { type SlipResult, type VerdictType } from "@/lib/pph21-ter"
-import { REGULATION_META, REGULATION_SOURCES } from "@/lib/regulations"
+import { REGULATION_META, REGULATION_SOURCES, BPJS_JP } from "@/lib/regulations"
 
 const VERDICT_CONFIG: Record<
   VerdictType,
@@ -193,26 +193,49 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
         )}
       </motion.div>
 
-      {/* Breakdown table */}
-      {!result.isDecember && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
-          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-700/50">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted dark:text-slate-400">
-              Rincian Komponen
-            </h3>
+      {/* Always show breakdown table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+        <div className="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-700/50">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted dark:text-slate-400">
+            Rincian Komponen
+          </h3>
+        </div>
+
+        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+          {/* Header row */}
+          <div className="grid grid-cols-4 gap-1 px-4 py-2">
+            {["Komponen", "Seharusnya", "Di Slip", "Status"].map((h) => (
+              <span key={h} className="text-[11px] font-semibold uppercase tracking-wide text-text-muted dark:text-slate-400">
+                {h}
+              </span>
+            ))}
           </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {/* Header row */}
-            <div className="grid grid-cols-4 gap-1 px-4 py-2">
-              {["Komponen", "Seharusnya", "Di Slip", "Status"].map((h) => (
-                <span key={h} className="text-[11px] font-semibold uppercase tracking-wide text-text-muted dark:text-slate-400">
-                  {h}
+          {tableRows.map((row, i) =>
+            row.label === "PPh 21" && result.pph21DataIncomplete ? (
+              <motion.div
+                key="pph21-incomplete"
+                custom={i}
+                initial="hidden"
+                animate="visible"
+                variants={tableRowVariants}
+                className="grid grid-cols-4 items-center gap-1 px-4 py-3 bg-amber-50/40 dark:bg-amber-950/10"
+              >
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    PPh 21
+                  </p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                    Isi total penghasilan tahunan untuk hasil akurat
+                  </p>
+                </div>
+                <span className="font-mono text-xs text-slate-400">—</span>
+                <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  {formatIDR(row.charged)}
                 </span>
-              ))}
-            </div>
-
-            {tableRows.map((row, i) => (
+                <span className="text-sm text-amber-500">⚠️</span>
+              </motion.div>
+            ) : (
               <motion.div
                 key={row.label}
                 custom={i}
@@ -259,10 +282,10 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
                 </span>
                 <RowStatus correct={row.isCorrect} illegal={row.isIllegal} />
               </motion.div>
-            ))}
-          </div>
+            )
+          )}
         </div>
-      )}
+      </div>
 
       {/* Explanation card */}
       <motion.div
@@ -390,8 +413,29 @@ export function VerdictCard({ result, onReset, resultRef }: VerdictCardProps) {
             </a>
           ))}
         </div>
+        {process.env.NEXT_PUBLIC_JP_CAP_2026_VERIFIED !== "true" && (
+          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+              ⚠️ Batas Upah JP 2026
+            </p>
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              Rp {new Intl.NumberFormat("id-ID").format(BPJS_JP.wage_cap_2026)}{" "}
+              — estimasi, belum dikonfirmasi dari Perpres resmi. Berlaku mulai 1
+              Maret 2026. Cek:{" "}
+              <a
+                href="https://peraturan.bpk.go.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                peraturan.bpk.go.id
+              </a>
+            </p>
+          </div>
+        )}
         <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          Data regulasi versi {REGULATION_META.version}. Terakhir diperbarui {REGULATION_META.last_updated}.
+          Data regulasi versi {REGULATION_META.version}. Terakhir diperbarui{" "}
+          {REGULATION_META.last_updated}.
         </p>
       </details>
 

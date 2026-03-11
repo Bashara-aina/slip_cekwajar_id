@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-export const revalidate = 60 * 60 * 24;
+/** Prevent static prerender at build (fetch requires network). Run only on request. */
+export const dynamic = "force-dynamic";
+
+const REVALIDATE_SEC = 60 * 60 * 24;
 
 async function fetchView<T>(path: string): Promise<T[]> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) return [];
 
-  const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
-    method: "GET",
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`
-    },
-    next: { revalidate }
-  });
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
+      method: "GET",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`
+      },
+      next: { revalidate: REVALIDATE_SEC }
+    });
 
-  if (!response.ok) return [];
-  return (await response.json()) as T[];
+    if (!response.ok) return [];
+    return (await response.json()) as T[];
+  } catch {
+    return [];
+  }
 }
 
 export async function GET(): Promise<NextResponse> {

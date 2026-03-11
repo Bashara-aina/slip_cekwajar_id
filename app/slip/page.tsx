@@ -6,18 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sun, Moon, ChevronLeft, ChevronRight, Loader2, Info, ChevronDown } from "lucide-react"
-import dynamic from "next/dynamic"
 
 import { CurrencyInput } from "@/components/CurrencyInput"
 import { PTKPSelector } from "@/components/PTKPSelector"
 import { MonthPicker } from "@/components/MonthPicker"
+import { VerdictCard } from "@/components/VerdictCard"
 import { useDarkMode } from "@/hooks/useDarkMode"
-import { calculateSlip, type SlipResult, type PTKPStatus } from "@/lib/pph21-ter"
-
-const VerdictCard = dynamic(
-  () => import("@/components/VerdictCard").then((m) => m.VerdictCard),
-  { ssr: false }
-)
+import { calculateSlip, validateSlipInput, type SlipResult, type PTKPStatus } from "@/lib/pph21-ter"
 
 // ─── Zod schema (Zod v4 — no required_error, no .default()) ──────────────────
 const schema = z.object({
@@ -107,6 +102,7 @@ export default function SlipPage() {
   const [result, setResult] = useState<SlipResult | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [showOptional, setShowOptional] = useState(false)
+  const [formErrors, setFormErrors] = useState<string[]>([])
   const resultRef = useRef<HTMLDivElement>(null)
 
   const {
@@ -142,6 +138,7 @@ export default function SlipPage() {
   const goToStep2 = async () => {
     const valid = await trigger(["month", "ptkp_status"])
     if (!valid) return
+    setFormErrors([])
     setDirection(1)
     setStep(2)
   }
@@ -152,12 +149,19 @@ export default function SlipPage() {
   }
 
   const onSubmit = handleSubmit(async (data) => {
-    setSubmitting(true)
-    await new Promise((r) => setTimeout(r, 600))
-    const res = calculateSlip({
+    const slipInput = {
       ...data,
       ptkp_status: data.ptkp_status as PTKPStatus,
-    })
+    }
+    const validationErrors = validateSlipInput(slipInput)
+    if (validationErrors.length > 0) {
+      setFormErrors(validationErrors)
+      return
+    }
+    setFormErrors([])
+    setSubmitting(true)
+    await new Promise((r) => setTimeout(r, 600))
+    const res = calculateSlip(slipInput)
     setResult(res)
     setSubmitting(false)
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100)
@@ -165,6 +169,7 @@ export default function SlipPage() {
 
   const handleReset = () => {
     setResult(null)
+    setFormErrors([])
     reset(DEFAULT_VALUES)
     setStep(1)
     setDirection(-1)
@@ -594,6 +599,15 @@ export default function SlipPage() {
                       "Cek Sekarang →"
                     )}
                   </motion.button>
+                </div>
+              )}
+              {formErrors.length > 0 && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/40">
+                  {formErrors.map((e, i) => (
+                    <p key={i} className="text-sm text-red-700 dark:text-red-300">
+                      ⚠️ {e}
+                    </p>
+                  ))}
                 </div>
               )}
             </div>

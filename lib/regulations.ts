@@ -10,10 +10,19 @@ export const REGULATION_META = {
   last_updated: "2026-03-11",
   jp_cap_next_update: "2027-03-01",  // remind maintainer
   changelog: [
-    { date: "2026-03-11", change: "Added wage_cap_2026" },
+    {
+      date: "2026-03-11",
+      change:
+        "Added wage_cap_2026 (Rp11.004.000 — ESTIMATE, pending Perpres verification)",
+      verified: false,
+    },
     { date: "2024-01-01", change: "PMK 168/2023 TER tables effective" },
     { date: "2025-03-01", change: "JP cap updated to Rp10.547.400" },
-  ],
+  ] as ReadonlyArray<{
+    date: string
+    change: string
+    verified?: boolean
+  }>,
 } as const
 
 export interface TERSlab {
@@ -201,8 +210,10 @@ export const TER_CATEGORY: Record<string, 'A' | 'B' | 'C'> = {
 
 // ─────────────────────────────────────────────
 // SECTION 3: BIAYA JABATAN
-// Source: PMK 168/2023 annual-reconciliation scheme
-// ⚠ Confirm original PMK biaya jabatan article before prod
+// Source: PMK No. 250/PMK.03/2008 Pasal 4
+// Rate: 5% × penghasilan bruto, max Rp500.000/bulan atau Rp6.000.000/tahun
+// PMK 168/2023 uses this in December annual reconciliation (Pasal 10)
+// Official: https://peraturan.bpk.go.id/Details/46748
 // ─────────────────────────────────────────────
 
 export const BIAYA_JABATAN = {
@@ -264,6 +275,24 @@ export const BPJS_JP = {
   wage_cap_2026: 11_004_000,   // verify exact figure from BPJS circular
 } as const
 
+// ─────────────────────────────────────────────
+// ⚠️ RUNTIME VERIFICATION GUARD — JP 2026
+// Remove this block once wage_cap_2026 is confirmed from Perpres
+// ─────────────────────────────────────────────
+if (
+  typeof process !== "undefined" &&
+  process.env.NODE_ENV !== "test" &&
+  new Date() >= new Date("2026-03-01")
+) {
+  if (process.env.JP_CAP_2026_VERIFIED !== "true") {
+    console.warn(
+      "[cekwajar] ⚠️ BPJS_JP.wage_cap_2026 (Rp11.004.000) is an " +
+        "estimate. Verify from official Perpres/BPJS circular and set " +
+        "JP_CAP_2026_VERIFIED=true in .env.local to suppress this warning."
+    )
+  }
+}
+
 export const BPJS_JKK = {
   // Source: PP 44/2015 Lampiran I
   // EMPLOYER ONLY — deducting from employee = TIDAK WAJAR
@@ -302,6 +331,13 @@ export const VERDICT_THRESHOLDS = {
 // ─────────────────────────────────────────────
 
 export const REGULATION_SOURCES = {
+  biaya_jabatan: {
+    name: "PMK No. 250/PMK.03/2008",
+    description: "Biaya Jabatan — 5% max Rp6jt/tahun",
+    url: "https://peraturan.bpk.go.id/Details/46748",
+    effective: "2009-01-01",
+    verified: true,
+  },
   pph21_ter: {
     name: 'PMK No. 168/PMK.03/2023',
     description: 'Tarif Efektif PPh Pasal 21',

@@ -48,7 +48,9 @@ function progressiveTax(pkp: number, brackets: TERSlab[]): number {
   let remaining = Math.max(0, pkp)
   let tax = 0
   for (const slab of brackets) {
-    const bandWidth = slab.max === null ? Infinity : slab.max - slab.min
+    // +1 because slab boundaries are inclusive on both ends.
+    // Slab { min: 0, max: 60_000_000 } covers exactly 60_000_001 values.
+    const bandWidth = slab.max === null ? Infinity : slab.max - slab.min + 1
     const amountInBand = Math.min(remaining, bandWidth)
     tax += amountInBand * slab.rate
     remaining -= amountInBand
@@ -84,6 +86,39 @@ export interface SlipInput {
   annual_iuran_pensiun?: number
   annual_zakat?: number
   annual_pph21_paid_before_last_period?: number
+}
+
+export function isDecemberInput(
+  input: SlipInput
+): input is SlipInput & { annual_gross: number } {
+  return input.month === 12 && typeof input.annual_gross === "number"
+}
+
+export function validateSlipInput(input: SlipInput): string[] {
+  const errors: string[] = []
+  if (input.month < 1 || input.month > 12) {
+    errors.push("Bulan harus antara 1–12")
+  }
+  if (input.gaji_pokok < 0) {
+    errors.push("Gaji pokok tidak boleh negatif")
+  }
+  if (input.month === 12 && input.annual_gross === undefined) {
+    errors.push(
+      "Bulan Desember membutuhkan total penghasilan tahunan (annual_gross) " +
+        "untuk rekonsiliasi PPh 21 yang akurat"
+    )
+  }
+  if (input.month === 12 && input.annual_gross !== undefined) {
+    const monthlyApprox =
+      input.gaji_pokok + input.tunjangan_tetap + input.tunjangan_tidak_tetap
+    if (input.annual_gross < monthlyApprox) {
+      errors.push(
+        "annual_gross tampak lebih kecil dari penghasilan satu bulan — " +
+          "pastikan ini total tahunan (bukan bulanan)"
+      )
+    }
+  }
+  return errors
 }
 
 export interface ComponentResult {
@@ -151,6 +186,7 @@ export interface SlipResult {
   explanation: string
   legalBasis: string[]
   isDecember: boolean
+  pph21DataIncomplete: boolean
 }
 
 function fmt(n: number): string {
@@ -200,7 +236,16 @@ function calculateAnnualPph21Expected(input: SlipInput): { expected: number; deb
 }
 
 export function getTERCategory(ptkp: PTKPStatus): TERCategory {
-  return (TER_CATEGORY[ptkp] ?? "A") as TERCategory
+  const result = TER_CATEGORY[ptkp]
+  if (!result) {
+    if (process.env.NODE_ENV === "development") {
+      console.error(
+        `[cekwajar] Unknown PTKP status: "${ptkp}". Defaulting to "A".`
+      )
+    }
+    return "A"
+  }
+  return result as TERCategory
 }
 
 export function getTERRate(category: TERCategory, gross: number): number {
@@ -463,6 +508,7 @@ export function calculateSlip(input: SlipInput): SlipResult {
     explanation: buildExplanation(all),
     legalBasis,
     isDecember: all.isDecember,
+    pph21DataIncomplete: all.pph21.expected === null,
   }
 }
 
