@@ -11,6 +11,11 @@ export const REGULATION_META = {
   jp_cap_next_update: "2027-03-01",  // remind maintainer
   changelog: [
     {
+      date: "2026-03-12",
+      change:
+        "Bug fixes: progressiveTax bandWidth, annualImpactWithInterest added, JP 2026 warning infrastructure",
+    },
+    {
       date: "2026-03-11",
       change:
         "Added wage_cap_2026 (Rp11.004.000 — ESTIMATE, pending Perpres verification)",
@@ -200,7 +205,13 @@ export const PTKP: Record<string, number> = {
   'K/I/3': 126_000_000,  // ⚠ verify PMK 101/PMK.010/2016
 }
 
-// TER category assignment per PTKP status (PMK 168/2023)
+/**
+ * PTKP → TER Category mapping per PMK 168/2023
+ * Category A: TK/0, TK/1, K/0         (single / married no children)
+ * Category B: TK/2, TK/3, K/1, K/2   (2–3 dependents)
+ * Category C: K/3, K/I/0–K/I/3        (max dependents or dual-income)
+ * ⚠ K/2 = Category B (NOT C) — common mistake
+ */
 export const TER_CATEGORY: Record<string, 'A' | 'B' | 'C'> = {
   'TK/0': 'A', 'TK/1': 'A', 'K/0': 'A',
   'TK/2': 'B', 'TK/3': 'B', 'K/1': 'B', 'K/2': 'B',
@@ -273,7 +284,8 @@ export const BPJS_JP = {
   // ⚠ UPDATE EVERY FEBRUARY for the following March
   wage_cap_2024: 10_042_300,   // effective 1 Mar 2024
   wage_cap_2025: 10_547_400,   // effective 1 Mar 2025
-  wage_cap_2026: 11_004_000,   // verify exact figure from BPJS circular
+  wage_cap_2026: 11_004_000,   // ESTIMATE — not from official source
+  wage_cap_2026_verified: false as const,
 } as const
 
 // ─────────────────────────────────────────────

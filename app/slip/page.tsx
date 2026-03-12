@@ -190,39 +190,34 @@ export default function SlipPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface dark:bg-slate-900">
+    <div className="min-h-screen bg-surface dark:bg-slate-900" style={{ isolation: "isolate", pointerEvents: "auto" }}>
       {/* ── Sticky header ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/95 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-          <a href="/" className="flex items-baseline gap-0.5">
+      <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/95 backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/95" style={{ pointerEvents: "auto" }}>
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
+          <a href="/" className="flex min-w-0 flex-shrink-0 items-baseline gap-0.5">
             <span className="text-xl font-black tracking-tight text-brand-primary">💼 wajar</span>
             <span className="text-xl font-black tracking-tight text-brand-accent">slip</span>
           </a>
-          <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-text-muted sm:block">
-              PPh21 + BPJS Calculator
-            </span>
-            <button
-              type="button"
-              onClick={toggleDark}
-              aria-label={isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
-            >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-          </div>
+          <p className="min-w-0 flex-1 truncate text-center text-xs font-medium text-text-muted dark:text-slate-400 sm:text-sm">
+            PPh21 + BPJS Calculator
+          </p>
+          <button
+            type="button"
+            onClick={toggleDark}
+            aria-label={isDark ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-6 pb-32">
-        {/* ── Hero ──────────────────────────────────────────────── */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6 rounded-2xl bg-gradient-to-br from-blue-50 to-emerald-50 p-6 dark:from-blue-950/50 dark:to-emerald-950/50"
+      <main className="relative mx-auto min-h-[60vh] max-w-lg px-4 py-6 pb-40" style={{ pointerEvents: "auto" }}>
+        {/* ── Hero (no initial hide — ensure visible on first paint) ──────────────────────────────────────────────── */}
+        <section
+          className="mb-6 rounded-2xl border border-slate-200/80 bg-gradient-to-br from-blue-50 to-emerald-50 p-6 shadow-sm dark:border-slate-700/80 dark:from-blue-950/50 dark:to-emerald-950/50"
         >
-          <h1 className="mb-2 text-[28px] font-bold leading-tight tracking-tight text-text-primary dark:text-slate-100">
+          <h1 className="mb-2 text-2xl font-bold leading-tight tracking-tight text-text-primary dark:text-slate-100 sm:text-[28px]">
             Potongan gaji lo bener gak? 🤔
           </h1>
           <p className="mb-4 text-sm leading-relaxed text-text-muted dark:text-slate-400">
@@ -245,20 +240,14 @@ export default function SlipPage() {
           <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
             Berdasarkan PMK 168/2023 (TER) &amp; PP 44/2015 (BPJS)
           </p>
-        </motion.section>
+        </section>
 
         {/* ── Form Card ─────────────────────────────────────────── */}
         <AnimatePresence mode="wait">
           {!result ? (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.35 }}
-            >
-                <form onSubmit={onSubmit} noValidate>
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card dark:border-slate-700 dark:bg-slate-800">
+            <div key="form" style={{ pointerEvents: "auto" }}>
+                <form onSubmit={onSubmit} noValidate style={{ pointerEvents: "auto" }}>
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
                   {/* Step indicator */}
                   <div className="flex items-center gap-0 border-b border-slate-100 dark:border-slate-700">
                     {[
@@ -269,7 +258,7 @@ export default function SlipPage() {
                         key={n}
                         type="button"
                         onClick={() => n === 1 ? goToStep1() : goToStep2()}
-                        className={`flex flex-1 items-center justify-center gap-2 px-4 py-3 text-xs font-semibold transition-colors ${
+                        className={`flex flex-1 cursor-pointer items-center justify-center gap-2 px-4 py-3 text-xs font-semibold transition-colors ${
                           step === n
                             ? "border-b-2 border-brand-primary text-brand-primary"
                             : "text-text-muted hover:text-slate-600 dark:text-slate-400"
@@ -292,55 +281,36 @@ export default function SlipPage() {
                     ))}
                   </div>
 
-                  {/* Steps */}
-                  <div className="relative overflow-hidden">
-                    <AnimatePresence initial={false} custom={direction} mode="wait">
-                      {step === 1 ? (
-                        <motion.div
-                          key="step1"
-                          custom={direction}
-                          variants={slideVariants}
-                          initial="enter"
-                          animate="center"
-                          exit="exit"
-                          transition={{ type: "tween", duration: 0.28, ease: "easeInOut" }}
-                          className="space-y-6 p-5"
-                        >
-                          <Controller
-                            control={control}
-                            name="month"
-                            render={({ field }) => (
-                              <MonthPicker
-                                value={field.value ?? 0}
-                                onChange={field.onChange}
-                                error={errors.month?.message}
-                              />
-                            )}
-                          />
+                  {/* Steps — plain divs so no motion layer can block clicks */}
+                  <div className="relative overflow-hidden" style={{ pointerEvents: "auto" }}>
+                    {step === 1 ? (
+                      <div key="step1" className="space-y-6 p-5">
+                        <Controller
+                          control={control}
+                          name="month"
+                          render={({ field }) => (
+                            <MonthPicker
+                              value={field.value ?? 0}
+                              onChange={field.onChange}
+                              error={errors.month?.message}
+                            />
+                          )}
+                        />
 
-                          <Controller
-                            control={control}
-                            name="ptkp_status"
-                            render={({ field }) => (
-                              <PTKPSelector
-                                value={(field.value as PTKPStatus) || ""}
-                                onChange={field.onChange}
-                                error={errors.ptkp_status?.message}
-                              />
-                            )}
-                          />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="step2"
-                          custom={direction}
-                          variants={slideVariants}
-                          initial="enter"
-                          animate="center"
-                          exit="exit"
-                          transition={{ type: "tween", duration: 0.28, ease: "easeInOut" }}
-                          className="space-y-5 p-5"
-                        >
+                        <Controller
+                          control={control}
+                          name="ptkp_status"
+                          render={({ field }) => (
+                            <PTKPSelector
+                              value={(field.value as PTKPStatus) || ""}
+                              onChange={field.onChange}
+                              error={errors.ptkp_status?.message}
+                            />
+                          )}
+                        />
+                      </div>
+                    ) : (
+                      <div key="step2" className="space-y-5 p-5">
                           {/* Over-deduction warning */}
                           <AnimatePresence>
                             {showOverWarning && (
@@ -605,9 +575,8 @@ export default function SlipPage() {
                               )}
                             </AnimatePresence>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -616,7 +585,7 @@ export default function SlipPage() {
                   🔒 Tidak ada data yang dikirim ke server kami saat kamu mengisi form ini.
                 </p>
               </form>
-            </motion.div>
+            </div>
           ) : (
             <motion.div
               key="result"
@@ -630,46 +599,37 @@ export default function SlipPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
 
-      {/* ── Sticky bottom CTA ─────────────────────────────────── */}
-      <AnimatePresence>
+        {/* ── Sticky bottom CTA (inside main, no fixed overlay) ─────────────────────────────────── */}
         {!result && (
-          <motion.div
-            key="cta"
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-100 bg-white/95 px-4 pb-safe pt-3 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95"
+          <div
+            className="sticky bottom-0 left-0 right-0 mt-6 border-t border-slate-100 bg-white/95 px-4 pb-safe pt-3 shadow-lg backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95"
+            style={{ pointerEvents: "auto" }}
           >
             <div className="mx-auto max-w-lg">
               {step === 1 ? (
-                <motion.button
+                <button
                   type="button"
                   onClick={goToStep2}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-primary text-base font-semibold text-white shadow-md transition-colors hover:bg-blue-700 active:bg-blue-800"
+                  className="flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-primary text-base font-semibold text-white shadow-md transition-colors hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800"
                 >
                   Lanjut <ChevronRight className="h-5 w-5" />
-                </motion.button>
+                </button>
               ) : (
                 <div className="flex gap-3">
-                  <motion.button
+                  <button
                     type="button"
                     onClick={goToStep1}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex h-14 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 font-semibold text-slate-600 shadow-card transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                    className="flex h-14 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-5 font-semibold text-slate-600 shadow-card transition-colors hover:bg-slate-50 active:scale-[0.98] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
                   >
                     <ChevronLeft className="h-5 w-5" />
-                  </motion.button>
+                  </button>
 
-                  <motion.button
+                  <button
                     type="button"
                     onClick={onSubmit}
                     disabled={submitting}
-                    whileTap={{ scale: 0.97 }}
-                    className="flex h-14 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-primary text-base font-semibold text-white shadow-md transition-colors hover:bg-blue-700 active:bg-blue-800 disabled:opacity-80"
+                    className="flex h-14 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-primary text-base font-semibold text-white shadow-md transition-colors hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-80"
                   >
                     {submitting ? (
                       <>
@@ -679,7 +639,7 @@ export default function SlipPage() {
                     ) : (
                       "Cek Sekarang →"
                     )}
-                  </motion.button>
+                  </button>
                 </div>
               )}
               {formErrors.length > 0 && (
@@ -692,9 +652,9 @@ export default function SlipPage() {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </main>
     </div>
   )
 }

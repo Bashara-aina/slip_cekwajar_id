@@ -48,9 +48,8 @@ function progressiveTax(pkp: number, brackets: TERSlab[]): number {
   let remaining = Math.max(0, pkp)
   let tax = 0
   for (const slab of brackets) {
-    // +1 because slab boundaries are inclusive on both ends.
-    // Slab { min: 0, max: 60_000_000 } covers exactly 60_000_001 values.
-    const bandWidth = slab.max === null ? Infinity : slab.max - slab.min + 1
+    // Half-open [min, max): bracket boundaries per UU HPP Pasal 17
+    const bandWidth = slab.max === null ? Infinity : slab.max - slab.min
     const amountInBand = Math.min(remaining, bandWidth)
     tax += amountInBand * slab.rate
     remaining -= amountInBand
@@ -162,6 +161,8 @@ export interface CalculateAllResult {
   overallVerdict: VerdictType
   totalOvercharge: number
   annualImpact: number
+  annualImpactWithInterest: number
+  jp_cap_unverified: boolean
   flags: string[]
   terCategory: TERCategory
   terRate: number
@@ -183,6 +184,9 @@ export interface SlipResult {
   totalCharged: number
   totalExpected: number
   totalOvercharge: number
+  annual_overcharge_estimate: number
+  annual_overcharge_with_interest: number
+  jp_cap_unverified: boolean
   explanation: string
   legalBasis: string[]
   isDecember: boolean
@@ -299,6 +303,16 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
   const jhtVerdict = classifyDiff(jhtDiff)
   const jpVerdict = classifyDiff(jpDiff)
 
+  const jp_cap_unverified =
+    taxYear >= 2026 &&
+    input.month >= 3 &&
+    process.env.JP_CAP_2026_VERIFIED !== "true"
+  if (jp_cap_unverified) {
+    flags.push(
+      "JP 2026: batas upah belum resmi terverifikasi (estimasi Rp11.004.000). Cek sirkular BPJS terbaru."
+    )
+  }
+
   const jkkVerdict: VerdictType = jkkActual > 0 ? "TIDAK_WAJAR" : "WAJAR"
   if (jkkActual > 0) flags.push("JKK dipotong dari karyawan (harus beban pemberi kerja)")
 
@@ -395,6 +409,8 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
     overallVerdict,
     totalOvercharge,
     annualImpact: totalOvercharge * 12,
+    annualImpactWithInterest: Math.round(totalOvercharge * 12 * 1.06),
+    jp_cap_unverified,
     flags,
     terCategory: category,
     terRate,
@@ -508,6 +524,9 @@ export function calculateSlip(input: SlipInput): SlipResult {
     totalCharged,
     totalExpected,
     totalOvercharge: all.totalOvercharge,
+    annual_overcharge_estimate: all.annualImpact,
+    annual_overcharge_with_interest: all.annualImpactWithInterest,
+    jp_cap_unverified: all.jp_cap_unverified,
     explanation: buildExplanation(all),
     legalBasis,
     isDecember: all.isDecember,
