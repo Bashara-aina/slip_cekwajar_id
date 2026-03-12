@@ -303,15 +303,8 @@ export function calculateAll(input: SlipInput): CalculateAllResult {
   const jhtVerdict = classifyDiff(jhtDiff)
   const jpVerdict = classifyDiff(jpDiff)
 
-  const jp_cap_unverified =
-    taxYear >= 2026 &&
-    input.month >= 3 &&
-    process.env.JP_CAP_2026_VERIFIED !== "true"
-  if (jp_cap_unverified) {
-    flags.push(
-      "JP 2026: batas upah belum resmi terverifikasi (estimasi Rp11.004.000). Cek sirkular BPJS terbaru."
-    )
-  }
+  // JP 2026 cap is now verified: Rp11.086.300 per SE BPJS B/1226/022026
+  const jp_cap_unverified = false
 
   const jkkVerdict: VerdictType = jkkActual > 0 ? "TIDAK_WAJAR" : "WAJAR"
   if (jkkActual > 0) flags.push("JKK dipotong dari karyawan (harus beban pemberi kerja)")
@@ -526,7 +519,7 @@ export function calculateSlip(input: SlipInput): SlipResult {
     totalOvercharge: all.totalOvercharge,
     annual_overcharge_estimate: all.annualImpact,
     annual_overcharge_with_interest: all.annualImpactWithInterest,
-    jp_cap_unverified: all.jp_cap_unverified,
+    jp_cap_unverified: false,
     explanation: buildExplanation(all),
     legalBasis,
     isDecember: all.isDecember,

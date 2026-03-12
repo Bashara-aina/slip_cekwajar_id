@@ -6,10 +6,16 @@
  */
 
 export const REGULATION_META = {
-  version: "2026-03-01",
-  last_updated: "2026-03-11",
+  version: "2026-03-12",
+  last_updated: "2026-03-12",
   jp_cap_next_update: "2027-03-01",  // remind maintainer
   changelog: [
+    {
+      date: "2026-03-12",
+      change:
+        "CRITICAL FIX: wage_cap_2026 corrected from Rp11.004.000 (estimate) to Rp11.086.300 (verified from SE BPJS B/1226/022026, 25 Feb 2026). PDB 2025 = 5.11% per BPS No.18/02/Th.XXIX. wage_cap_2026_verified = true.",
+      verified: true,
+    },
     {
       date: "2026-03-12",
       change:
@@ -284,27 +290,14 @@ export const BPJS_JP = {
   // ⚠ UPDATE EVERY FEBRUARY for the following March
   wage_cap_2024: 10_042_300,   // effective 1 Mar 2024
   wage_cap_2025: 10_547_400,   // effective 1 Mar 2025
-  wage_cap_2026: 11_004_000,   // ESTIMATE — not from official source
-  wage_cap_2026_verified: false as const,
+  wage_cap_2026: 11_086_300,   // ✅ VERIFIED — BPJS SE B/1226/022026, 25 Feb 2026
+  wage_cap_2026_verified: true as const,
+  // Calculation: Rp10.547.400 × (1 + 5.11% PDB 2025) = Rp11.086.372 → Rp11.086.300
+  // Source: BPS Berita Resmi No. 18/02/Th.XXIX, 5 Feb 2026
+  benefit_min_2026: 411_400,   // Rp411.400/month, effective Feb 2026
+  benefit_max_2026: 4_932_300, // Rp4.932.300/month, effective Feb 2026
+  // Source: SE B/1226/022026 — inflasi 2025 = 2.92%
 } as const
-
-// ─────────────────────────────────────────────
-// ⚠️ RUNTIME VERIFICATION GUARD — JP 2026
-// Remove this block once wage_cap_2026 is confirmed from Perpres
-// ─────────────────────────────────────────────
-if (
-  typeof process !== "undefined" &&
-  process.env.NODE_ENV !== "test" &&
-  new Date() >= new Date("2026-03-01")
-) {
-  if (process.env.JP_CAP_2026_VERIFIED !== "true") {
-    console.warn(
-      "[cekwajar] ⚠️ BPJS_JP.wage_cap_2026 (Rp11.004.000) is an " +
-        "estimate. Verify from official Perpres/BPJS circular and set " +
-        "JP_CAP_2026_VERIFIED=true in .env.local to suppress this warning."
-    )
-  }
-}
 
 export const BPJS_JKK = {
   // Source: PP 44/2015 Lampiran I
@@ -384,8 +377,9 @@ export const REGULATION_SOURCES = {
     description: 'Jaminan Pensiun — cap update tiap Maret',
     url: 'https://peraturan.bpk.go.id/',
     effective: '2015-07-01',
-    verified: true,           // PP 45/2015 regulation is verified
-    cap_2026_verified: false, // wage_cap_2026 = estimate, pending Perpres
+    verified: true,
+    cap_2026_verified: true,
+    cap_2026_source: "SE BPJS Ketenagakerjaan B/1226/022026 tanggal 25 Februari 2026",
   },
   bpjs_jkk_jkm: {
     name: 'PP No. 44/2015',

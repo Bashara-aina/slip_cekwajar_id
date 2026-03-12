@@ -111,12 +111,70 @@ describe("regulations.ts — constant integrity", () => {
     expect(getJpCap(2025, 3)).toBe(10_547_400);
   });
 
-  it("JP cap: year=2026 month=2 → 10_547_400 (still 2025 cap)", () => {
+  it("JP cap: year=2026 month=2 → 10_547_400 (still 2025 cap, March rule)", () => {
     expect(getJpCap(2026, 2)).toBe(10_547_400);
   });
 
-  it("JP cap: year=2026 month=3 → 11_004_000 (2026 estimate)", () => {
-    expect(getJpCap(2026, 3)).toBe(11_004_000);
+  it("JP cap: year=2026 month=3 → 11_086_300 (verified from SE BPJS B/1226/022026)", () => {
+    expect(getJpCap(2026, 3)).toBe(11_086_300);
+  });
+
+  it("JP cap: year=2026 month=12 → 11_086_300 (2026 cap applies all year after March)", () => {
+    expect(getJpCap(2026, 12)).toBe(11_086_300);
+  });
+
+  it("JP iuran karyawan at exact cap 2026: gross=11_086_300 → JP=110_863", () => {
+    const result = calculateSlip({
+      month: 6,
+      ptkp_status: "TK/0",
+      gaji_pokok: 11_086_300,
+      tunjangan_tetap: 0,
+      tunjangan_tidak_tetap: 0,
+      pph21_charged: 0,
+      bpjs_kesehatan_charged: 110_863,
+      bpjs_jht_charged: 221_726,
+      bpjs_jp_charged: 110_863,
+      bpjs_jkk_charged: 0,
+      bpjs_jkm_charged: 0,
+      potongan_lain: 0,
+    });
+    expect(result.bpjsJp.expected).toBe(110_863);
+  });
+
+  it("JP iuran above cap 2026: gross=15_000_000 → JP=110_863 (capped)", () => {
+    const result = calculateSlip({
+      month: 6,
+      ptkp_status: "TK/0",
+      gaji_pokok: 15_000_000,
+      tunjangan_tetap: 0,
+      tunjangan_tidak_tetap: 0,
+      pph21_charged: 900_000,
+      bpjs_kesehatan_charged: 120_000,
+      bpjs_jht_charged: 300_000,
+      bpjs_jp_charged: 110_863,
+      bpjs_jkk_charged: 0,
+      bpjs_jkm_charged: 0,
+      potongan_lain: 0,
+    });
+    expect(result.bpjsJp.expected).toBe(110_863);
+  });
+
+  it("jp_cap_unverified is always false after cap verification", () => {
+    const result = calculateSlip({
+      month: 3,
+      ptkp_status: "TK/0",
+      gaji_pokok: 12_000_000,
+      tunjangan_tetap: 0,
+      tunjangan_tidak_tetap: 0,
+      pph21_charged: 0,
+      bpjs_kesehatan_charged: 120_000,
+      bpjs_jht_charged: 240_000,
+      bpjs_jp_charged: 110_863,
+      bpjs_jkk_charged: 0,
+      bpjs_jkm_charged: 0,
+      potongan_lain: 0,
+    });
+    expect(result.jp_cap_unverified).toBe(false);
   });
 
   it("Dec: annual=120M TK/0 → BJ=6M, PKP=60M, tax=3_000_000", () => {
@@ -314,23 +372,25 @@ describe("regulations.ts — constant integrity", () => {
 
 describe("audit.ts — critical regression tests", () => {
 
-  // B-1: JP cap must use 2026 value (11_004_000) for March 2026
-  it("JP expected uses 2026 cap for month=3", () => {
+  // B-1: JP expected uses verified 2026 cap (Rp11.086.300) for month=3
+  it("JP expected uses verified 2026 cap (Rp11.086.300) for month=3", () => {
+    // Source: SE BPJS B/1226/022026, effective 1 Maret 2026
+    // Cap = Rp10.547.400 × (1 + 5.11%) = Rp11.086.372 → Rp11.086.300
     const result = auditSlip({
-      gross: 11_004_000,
+      gross: 11_086_300,
       month: 3,
       ptkp_status: "TK/0",
       deductions: {
         pph21: 0,
-        bpjs_kesehatan: 110_040,
-        bpjs_jht: 220_080,
-        bpjs_jp: 110_040,   // 1% × 11_004_000
+        bpjs_kesehatan: 110_863,
+        bpjs_jht: 221_726,
+        bpjs_jp: 110_863,   // 1% × 11_086_300 = 110_863
         bpjs_jkk: 0,
         bpjs_jkm: 0,
         potongan_lain: 0,
       },
     });
-    expect(result.expected_breakdown.bpjs.jp.expected).toBe(110_040);
+    expect(result.expected_breakdown.bpjs.jp.expected).toBe(110_863);
   });
 
   // B-3: K/I/0 must map to TER Category C (was wrongly mapped to A in old PTKP_CATEGORY_MAP)
